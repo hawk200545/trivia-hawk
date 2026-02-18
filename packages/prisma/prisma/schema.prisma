@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -13,11 +7,63 @@ datasource db {
   provider = "postgresql"
 }
 
-
-model User{
-  id String  @id @default(uuid())
-  username String @unique
-  password String
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  quizzes   Quiz[]
+  scores    Score[]
+}
+
+model Quiz {
+  id        String     @id @default(cuid())
+  title     String
+  hostId    String
+  host      User       @relation(fields: [hostId], references: [id])
+  questions Question[]
+  rooms     Room[]
+  createdAt DateTime   @default(now())
+}
+
+model Question {
+  id            String  @id @default(cuid())
+  quizId        String
+  quiz          Quiz    @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  text          String
+  imageUrl      String?
+  options       Json // string[]
+  correctIndex  Int
+  timeLimitSecs Int     @default(30)
+  order         Int
+}
+
+model Room {
+  id        String     @id @default(cuid())
+  code      String     @unique
+  quizId    String
+  quiz      Quiz       @relation(fields: [quizId], references: [id])
+  status    RoomStatus @default(LOBBY)
+  hostId    String
+  createdAt DateTime   @default(now())
+  scores    Score[]
+}
+
+model Score {
+  id      String @id @default(cuid())
+  roomId  String
+  room    Room   @relation(fields: [roomId], references: [id])
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  points  Int    @default(0)
+  answers Json // { questionId: string, answerIndex: number, correct: boolean, timeMs: number }[]
+
+  @@unique([roomId, userId])
+}
+
+enum RoomStatus {
+  LOBBY
+  ACTIVE
+  FINISHED
 }
