@@ -20,19 +20,25 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
 
       - name: Deploy
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ubuntu@"${{ secrets.DEV_SERVER_IP }}" \
-            "cat > ~/${{ env.APP_DIR }}/.env" <<< "$ENV_FILE"
-
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ubuntu@"${{ secrets.DEV_SERVER_IP }}" << 'EOF'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ubuntu@"${{ secrets.DEV_SERVER_IP }}" << EOF
             set -e
-            export BUN_INSTALL="$HOME/.bun"
-            export PATH="$BUN_INSTALL/bin:$PATH"
-            cd ${{ env.APP_DIR }}
+            export BUN_INSTALL="\$HOME/.bun"
+            export PATH="\$BUN_INSTALL/bin:/home/ubuntu/.nvm/versions/node/v24.13.1/bin:\$PATH"
+
+            # App environment variables
+            export DATABASE_URL="${{ secrets.DEV_DATABASE_URL }}"
+            export PORT="${{ secrets.DEV_PORT }}"
+            export WS_PORT="${{ secrets.DEV_WS_PORT }}"
+            export CORS_ORIGINS="${{ secrets.DEV_CORS_ORIGINS }}"
+            export NEXT_PUBLIC_HTTP_URL="${{ secrets.DEV_NEXT_PUBLIC_HTTP_URL }}"
+            export NEXT_PUBLIC_WS_URL="${{ secrets.DEV_NEXT_PUBLIC_WS_URL }}"
+
+            cd trivia-hawk
             git pull origin main
             bun install
+            bunx prisma generate --schema=packages/prisma/prisma/schema.prisma
+            bunx prisma migrate deploy --schema=packages/prisma/prisma/schema.prisma
             bun run build
             pm2 restart fe-server http-server ws-server
           EOF
