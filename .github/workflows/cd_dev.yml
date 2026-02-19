@@ -23,10 +23,10 @@ jobs:
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes root@"${{ secrets.DEV_SERVER_IP }}" \
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@"${{ secrets.DEV_SERVER_IP }}" \
             "cat > ~/${{ env.APP_DIR }}/.env" <<< "$ENV_FILE"
 
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes root@"${{ secrets.DEV_SERVER_IP }}" << 'EOF'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@"${{ secrets.DEV_SERVER_IP }}" << 'EOF'
             set -e
             export BUN_INSTALL="$HOME/.bun"
             export PATH="$BUN_INSTALL/bin:$PATH"
