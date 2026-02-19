@@ -28,7 +28,7 @@ jobs:
           $SSH_CMD "cat > ~/trivia-hawk/packages/prisma/.env" << 'ENVEOF'
           DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
           ENVEOF
-
+      
           $SSH_CMD "cat > ~/trivia-hawk/apps/http_server/.env" << 'ENVEOF'
           DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
           PORT=${{ secrets.DEV_PORT }}
@@ -55,8 +55,10 @@ jobs:
             cd trivia-hawk
             git pull origin main
             bun install
-            bunx prisma generate --schema=packages/prisma/prisma/schema.prisma
-            bunx prisma migrate deploy --schema=packages/prisma/prisma/schema.prisma
+            cd packages/prisma
+            bunx prisma generate
+            bunx prisma migrate deploy
+            cd ../..
             bun run build
             pm2 restart fe-server http-server ws-server
           EOF
