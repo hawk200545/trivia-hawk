@@ -4,6 +4,12 @@ import { useEffect, useState, use } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { TimerRing } from "../../components/TimerRing";
+import { OptionButton } from "../../components/OptionButton";
+import { PlayerChip } from "../../components/PlayerChip";
+import { Podium } from "../../components/Podium";
+import { RoomCode } from "../../components/RoomCode";
+import type { OptionState } from "../../components/OptionButton";
 import type {
   RoomStatePayload,
   QuestionStartPayload,
@@ -38,12 +44,10 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const [phase, setPhase] = useState<"lobby" | "question" | "result" | "leaderboard" | "gameover">("lobby");
   const [error, setError] = useState("");
 
-  // Connect
   useEffect(() => {
     connect();
   }, [connect]);
 
-  // Join room
   useEffect(() => {
     if (!connected || !roomCode) return;
     sendMessage({
@@ -52,7 +56,6 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     });
   }, [connected, roomCode, userId, username, sendMessage]);
 
-  // Event handlers
   useEffect(() => {
     const unsubs = [
       on("ROOM_STATE", (msg) => {
@@ -87,7 +90,6 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
       on("QUESTION_END", (msg) => {
         const result = msg.payload as QuestionEndPayload;
         setQuestionResult(result);
-        // Find my result
         const mine = result.results.find((r) => r.userId === userId);
         if (mine) {
           setMyResult({ correct: mine.correct, points: mine.pointsEarned });
@@ -109,18 +111,25 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     return () => unsubs.forEach((u) => u());
   }, [on, userId]);
 
-  // Timer
   useEffect(() => {
     if (phase !== "question" || timeLeft <= 0 || answerSubmitted) return;
     const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
     return () => clearInterval(timer);
   }, [phase, timeLeft, answerSubmitted]);
 
+  useEffect(() => {
+    if (phase === "question") {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [phase]);
+
   const handleSelectAnswer = (idx: number) => {
     if (answerSubmitted || !currentQuestion) return;
     setSelectedAnswer(idx);
     setAnswerSubmitted(true);
-
     const timeMs = Date.now() - answerStartTime;
     sendMessage({
       type: "SUBMIT_ANSWER",
@@ -134,10 +143,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   };
 
   const handleLeaveRoom = () => {
-    sendMessage({
-      type: "LEAVE_ROOM",
-      payload: { roomCode, userId },
-    });
+    sendMessage({ type: "LEAVE_ROOM", payload: { roomCode, userId } });
     disconnect();
     router.push("/");
   };
@@ -146,11 +152,19 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   if (error) {
     return (
       <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-        <div className="glass-card" style={{ padding: 40, textAlign: "center", maxWidth: 400 }}>
-          <div style={{ fontSize: "3rem", marginBottom: 16 }}>😕</div>
-          <p style={{ color: "var(--accent-red)", marginBottom: 24 }}>{error}</p>
+        <div className="panel" style={{ padding: 36, textAlign: "center", maxWidth: 380 }}>
+          <p
+            style={{
+              color: "var(--accent-red)",
+              marginBottom: 20,
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+            }}
+          >
+            {error.toUpperCase()}
+          </p>
           <button className="btn btn-primary" onClick={() => router.push("/")}>
-            Back to Home
+            BACK TO HOME
           </button>
         </div>
       </div>
@@ -161,45 +175,61 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   if (phase === "lobby") {
     return (
       <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-        <div className="container" style={{ maxWidth: 500, textAlign: "center" }}>
-          <div className="animate-fade-in" style={{ marginBottom: 32 }}>
-            <p style={{ color: "var(--muted-light)", marginBottom: 4 }}>Joined room</p>
-            <div className="room-code" style={{ fontSize: "2.2rem" }}>{roomCode}</div>
+        <div className="container" style={{ maxWidth: 480, textAlign: "center" }}>
+          <div className="animate-fade-in" style={{ marginBottom: 28 }}>
+            <div className="label" style={{ marginBottom: 8 }}>Joined Room</div>
+            <RoomCode code={roomCode} />
           </div>
 
-          <div className="glass-card animate-slide-up" style={{ padding: 32, marginBottom: 24 }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: 16 }}>⏳</div>
-            <h2 style={{ fontSize: "1.3rem", fontWeight: 600, marginBottom: 8 }}>
-              Waiting for host to start...
-            </h2>
-            <p style={{ color: "var(--muted-light)", fontSize: "0.9rem", marginBottom: 20 }}>
-              {players.length} player{players.length !== 1 ? "s" : ""} in the lobby
-            </p>
+          <div className="panel animate-slide-up" style={{ padding: 24, marginBottom: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: "0.8rem",
+                  color: "var(--muted-light)",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                WAITING FOR HOST...
+              </span>
+              <span
+                style={{
+                  fontFamily: "ui-monospace, monospace",
+                  fontWeight: 900,
+                  color: players.length > 0 ? "var(--accent-green)" : "var(--muted)",
+                }}
+              >
+                {players.length} PLAYERS
+              </span>
+            </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {players.map((p) => (
-                <div key={p.userId} className={`player-chip ${!p.connected ? "disconnected" : ""}`}>
-                  <div className="avatar">{p.username[0]?.toUpperCase()}</div>
-                  <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
-                    <span>
-                      {p.username}
-                      {p.userId === hostId && <span title="Host"> 👑</span>}
-                    </span>
-                    {p.userId === userId && (
-                      <span style={{ fontSize: "0.65rem", color: "var(--accent-cyan)" }}>(You)</span>
-                    )}
-                  </div>
-                </div>
+                <PlayerChip
+                  key={p.userId}
+                  username={p.username}
+                  connected={p.connected}
+                  isYou={p.userId === userId}
+                  isHost={p.userId === hostId}
+                />
               ))}
             </div>
           </div>
 
           <button
             className="btn btn-secondary"
-            style={{ marginTop: 8 }}
             onClick={handleLeaveRoom}
+            style={{ fontSize: "0.75rem" }}
           >
-            🚪 Leave Room
+            LEAVE ROOM
           </button>
         </div>
       </div>
@@ -209,68 +239,112 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   // ─── QUESTION ───
   if (phase === "question" && currentQuestion) {
     const q = currentQuestion;
-    const circumference = 2 * Math.PI * 52;
-    const progress = (timeLeft / q.timeLimitSecs) * circumference;
-    const timerClass = timeLeft <= 5 ? "timer-critical" : timeLeft <= 10 ? "timer-warning" : "";
+
+    const getOptionState = (i: number): OptionState => {
+      if (answerSubmitted && selectedAnswer === i) return "selected";
+      return "idle";
+    };
 
     return (
       <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-        <div className="container" style={{ maxWidth: 600, textAlign: "center" }}>
-          <p style={{ color: "var(--muted-light)", marginBottom: 8 }}>
-            Question {q.questionIndex + 1} of {q.total}
-          </p>
-
-          <div className={`timer-ring ${timerClass}`} style={{ margin: "0 auto 20px" }}>
-            <svg width="120" height="120" viewBox="0 0 120 120">
-              <circle className="ring-bg" cx="60" cy="60" r="52" />
-              <circle
-                className="ring-progress"
-                cx="60" cy="60" r="52"
-                strokeDasharray={circumference}
-                strokeDashoffset={circumference - progress}
-              />
-            </svg>
-            <div className="timer-text">{timeLeft}</div>
+        <div className="container" style={{ maxWidth: 580, textAlign: "center" }}>
+          {/* HUD top */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 20,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: "0.8rem",
+                color: "var(--muted-light)",
+                letterSpacing: "0.1em",
+              }}
+            >
+              Q {q.questionIndex + 1} / {q.total}
+            </span>
+            <span
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: "0.75rem",
+                color: "var(--muted)",
+              }}
+            >
+              ROOM {roomCode}
+            </span>
           </div>
 
-          <div className="glass-card animate-scale-in" style={{ padding: 24, marginBottom: 20 }}>
+          {/* Timer */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+            <TimerRing timeLeft={timeLeft} totalTime={q.timeLimitSecs} />
+          </div>
+
+          {/* Question */}
+          <div className="panel animate-scale-in" style={{ padding: 24, marginBottom: 16 }}>
             {q.question.imageUrl && (
               <Image
                 src={q.question.imageUrl}
                 alt="Question"
                 width={500}
                 height={180}
-                style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8, marginBottom: 12, objectFit: "contain" }}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: 180,
+                  borderRadius: "var(--radius)",
+                  marginBottom: 12,
+                  objectFit: "contain",
+                }}
               />
             )}
-            <h2 style={{ fontSize: "1.3rem", fontWeight: 700, lineHeight: 1.4 }}>
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, lineHeight: 1.5 }}>
               {q.question.text}
             </h2>
           </div>
 
+          {/* Answers / Submitted state */}
           {answerSubmitted ? (
-            <div className="glass-card animate-fade-in" style={{ padding: 24 }}>
-              <div style={{ fontSize: "2rem", marginBottom: 8 }}>✅</div>
-              <p style={{ fontWeight: 600 }}>Answer submitted!</p>
-              <p style={{ color: "var(--muted-light)", fontSize: "0.9rem" }}>
-                You selected: {String.fromCharCode(65 + (selectedAnswer ?? 0))}. {q.question.options[selectedAnswer ?? 0]}
+            <div
+              className="panel animate-fade-in"
+              style={{
+                padding: 20,
+                borderColor: "var(--accent-blue)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "ui-monospace, monospace",
+                  fontWeight: 900,
+                  color: "var(--accent-blue)",
+                  fontSize: "0.85rem",
+                  letterSpacing: "0.12em",
+                  marginBottom: 6,
+                }}
+              >
+                ANSWER LOCKED IN
+              </div>
+              <p style={{ color: "var(--muted-light)", fontSize: "0.85rem" }}>
+                {String.fromCharCode(65 + (selectedAnswer ?? 0))}:{" "}
+                {q.question.options[selectedAnswer ?? 0]}
               </p>
-              <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginTop: 8 }}>
-                Waiting for time to expire...
+              <p style={{ color: "var(--muted)", fontSize: "0.75rem", marginTop: 6, letterSpacing: "0.05em" }}>
+                Waiting for others...
               </p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {q.question.options.map((opt, i) => (
-                <button
+                <OptionButton
                   key={i}
-                  className={`option-btn ${selectedAnswer === i ? "selected" : ""}`}
-                  onClick={() => handleSelectAnswer(i)}
+                  letter={String.fromCharCode(65 + i)}
+                  text={opt}
+                  state={getOptionState(i)}
                   disabled={answerSubmitted}
-                >
-                  <span className="option-letter">{String.fromCharCode(65 + i)}</span>
-                  {opt}
-                </button>
+                  onClick={() => handleSelectAnswer(i)}
+                />
               ))}
             </div>
           )}
@@ -285,42 +359,75 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
     return (
       <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-        <div className="container" style={{ maxWidth: 500, textAlign: "center" }}>
+        <div className="container" style={{ maxWidth: 480, textAlign: "center" }}>
           {myResult ? (
-            <div className="animate-scale-in">
-              <div style={{ fontSize: "4rem", marginBottom: 16 }}>
-                {myResult.correct ? "🎉" : "😔"}
+            <div className="animate-scale-in" style={{ marginBottom: 24 }}>
+              <div
+                style={{
+                  fontSize: "4rem",
+                  lineHeight: 1,
+                  marginBottom: 12,
+                  fontWeight: 900,
+                  color: myResult.correct ? "var(--accent-green)" : "var(--accent-red)",
+                }}
+              >
+                {myResult.correct ? "+" : "—"}
               </div>
               <h2
                 style={{
                   fontSize: "1.6rem",
-                  fontWeight: 700,
+                  fontWeight: 900,
+                  letterSpacing: "0.1em",
                   color: myResult.correct ? "var(--accent-green)" : "var(--accent-red)",
-                  marginBottom: 8,
+                  marginBottom: 6,
                 }}
               >
-                {myResult.correct ? "Correct!" : "Incorrect"}
+                {myResult.correct ? "CORRECT" : "INCORRECT"}
               </h2>
               {myResult.correct && (
-                <p className="score-pop" style={{ fontSize: "2rem", fontWeight: 800, color: "var(--accent-cyan)" }}>
+                <div
+                  className="score-pop"
+                  style={{
+                    fontSize: "2.4rem",
+                    fontWeight: 900,
+                    fontFamily: "ui-monospace, monospace",
+                    color: "var(--accent-amber)",
+                  }}
+                >
                   +{myResult.points}
-                </p>
+                </div>
               )}
             </div>
           ) : (
-            <div className="animate-fade-in">
-              <div style={{ fontSize: "3rem", marginBottom: 12 }}>⏰</div>
-              <h2 style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--accent-orange)" }}>
-                Time&apos;s Up!
+            <div className="animate-fade-in" style={{ marginBottom: 24 }}>
+              <h2
+                style={{
+                  fontSize: "1.4rem",
+                  fontWeight: 900,
+                  color: "var(--accent-amber)",
+                  letterSpacing: "0.12em",
+                }}
+              >
+                TIME&apos;S UP
               </h2>
             </div>
           )}
 
-          <div className="glass-card animate-slide-up delay-200" style={{ padding: 20, marginTop: 24 }}>
-            <p style={{ color: "var(--muted-light)", fontSize: "0.85rem", marginBottom: 4 }}>
-              Correct Answer
-            </p>
-            <p style={{ fontWeight: 600, color: "var(--accent-green)" }}>
+          <div
+            className="panel animate-slide-up delay-200"
+            style={{
+              padding: 16,
+              borderColor: "var(--accent-green)",
+            }}
+          >
+            <div className="label" style={{ marginBottom: 6 }}>Correct Answer</div>
+            <p
+              style={{
+                fontWeight: 700,
+                color: "var(--accent-green)",
+                fontFamily: "ui-monospace, monospace",
+              }}
+            >
               {String.fromCharCode(65 + questionResult.correctIndex)}. {correctOpt}
             </p>
           </div>
@@ -336,49 +443,67 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
     return (
       <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-        <div className="container" style={{ maxWidth: 500, textAlign: "center" }}>
-          <h2 className="animate-fade-in" style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: 8 }}>
-            🏆 Leaderboard
+        <div className="container" style={{ maxWidth: 480, textAlign: "center" }}>
+          <h2
+            className="animate-fade-in"
+            style={{
+              fontSize: "1.3rem",
+              fontWeight: 900,
+              letterSpacing: "0.15em",
+              marginBottom: 6,
+            }}
+          >
+            LEADERBOARD
           </h2>
           {myScore && (
-            <p className="animate-fade-in delay-100" style={{ color: "var(--accent-cyan)", fontWeight: 600, marginBottom: 24 }}>
-              You&apos;re #{myRank} with {myScore.points} points
+            <p
+              className="animate-fade-in delay-100"
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                color: "var(--accent-blue)",
+                fontWeight: 900,
+                marginBottom: 20,
+                fontSize: "0.85rem",
+                letterSpacing: "0.1em",
+              }}
+            >
+              YOU ARE #{myRank} — {myScore.points} PTS
             </p>
           )}
 
-          <div className="glass-card animate-slide-up delay-200" style={{ padding: 20 }}>
+          <div className="panel animate-slide-up delay-100" style={{ padding: 0, overflow: "hidden" }}>
             {leaderboard.map((entry, i) => (
               <div
                 key={entry.userId}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "10px 12px",
-                  borderBottom: i < leaderboard.length - 1 ? "1px solid var(--border)" : "none",
-                  background: entry.userId === userId ? "rgba(139, 92, 246, 0.1)" : "transparent",
-                  borderRadius: 8,
-                }}
+                className={`lb-row animate-slide-up ${entry.userId === userId ? "is-you" : ""}`}
+                style={{ animationDelay: `${i * 60}ms` }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontWeight: 700, color: i < 3 ? "var(--accent-orange)" : "var(--muted)", width: 20, fontSize: "0.9rem" }}>
-                    {i + 1}
-                  </span>
-                  <span style={{ fontWeight: entry.userId === userId ? 700 : 400, fontSize: "0.95rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span className={`lb-rank ${i < 3 ? "top3" : ""}`}>{i + 1}</span>
+                  <span style={{ fontWeight: entry.userId === userId ? 700 : 400, fontSize: "0.9rem" }}>
                     {entry.username}
-                    {entry.userId === userId && " (You)"}
+                    {entry.userId === userId && (
+                      <span style={{ color: "var(--accent-blue)", marginLeft: 6, fontSize: "0.7rem" }}>YOU</span>
+                    )}
+                    {entry.userId === hostId && (
+                      <span style={{ color: "var(--accent-amber)", marginLeft: 6, fontSize: "0.7rem" }}>HOST</span>
+                    )}
                   </span>
-                  {entry.userId === hostId && <span title="Host">👑</span>}
                 </div>
-                <span style={{ fontWeight: 700, color: "var(--accent-cyan)", fontSize: "0.95rem" }}>
-                  {entry.points}
-                </span>
+                <span className="lb-pts">{entry.points}</span>
               </div>
             ))}
           </div>
 
-          <p style={{ color: "var(--muted)", marginTop: 16, fontSize: "0.8rem" }}>
-            Next question coming soon...
+          <p
+            style={{
+              color: "var(--muted)",
+              marginTop: 14,
+              fontSize: "0.75rem",
+              letterSpacing: "0.1em",
+            }}
+          >
+            NEXT QUESTION COMING SOON...
           </p>
         </div>
       </div>
@@ -387,77 +512,72 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
   // ─── GAME OVER ───
   if (phase === "gameover" && gameOver) {
-    const top3 = gameOver.finalScores.slice(0, 3);
     const myRank = gameOver.finalScores.findIndex((e) => e.userId === userId) + 1;
     const myScore = gameOver.finalScores.find((e) => e.userId === userId);
 
     return (
       <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-        <div className="container" style={{ maxWidth: 600, textAlign: "center" }}>
-          <h1 className="hero-title animate-scale-in" style={{ fontSize: "2.2rem", marginBottom: 8 }}>
-            🎉 Game Over!
+        <div className="container" style={{ maxWidth: 580, textAlign: "center" }}>
+          <div className="hero-sub animate-fade-in" style={{ marginBottom: 6 }}>
+            Game Over
+          </div>
+          <h1
+            className="hero-title animate-scale-in"
+            style={{ fontSize: "2.6rem", marginBottom: 8 }}
+          >
+            FINAL RESULTS
           </h1>
 
           {myScore && (
-            <p className="animate-fade-in delay-100" style={{ color: "var(--accent-cyan)", fontSize: "1.1rem", fontWeight: 600, marginBottom: 32 }}>
-              You finished #{myRank} with {myScore.points} points!
+            <p
+              className="animate-fade-in delay-100"
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontWeight: 900,
+                color: "var(--accent-blue)",
+                fontSize: "0.9rem",
+                letterSpacing: "0.1em",
+                marginBottom: 28,
+              }}
+            >
+              YOU FINISHED #{myRank} — {myScore.points} PTS
             </p>
           )}
 
-          {/* Podium */}
-          <div className="podium animate-slide-up delay-200">
-            {top3[1] && (
-              <div className="podium-place podium-2nd">
-                <div className="podium-name">{top3[1].username}</div>
-                <div className="podium-bar">🥈</div>
-                <div className="podium-points">{top3[1].points} pts</div>
-              </div>
-            )}
-            {top3[0] && (
-              <div className="podium-place podium-1st">
-                <div className="podium-name">{top3[0].username}</div>
-                <div className="podium-bar">🥇</div>
-                <div className="podium-points">{top3[0].points} pts</div>
-              </div>
-            )}
-            {top3[2] && (
-              <div className="podium-place podium-3rd">
-                <div className="podium-name">{top3[2].username}</div>
-                <div className="podium-bar">🥉</div>
-                <div className="podium-points">{top3[2].points} pts</div>
-              </div>
-            )}
-          </div>
+          <Podium scores={gameOver.finalScores} />
 
-          {/* Full Scores */}
-          <div className="glass-card animate-slide-up delay-300" style={{ padding: 20, marginTop: 32 }}>
+          <div
+            className="panel animate-slide-up delay-300"
+            style={{ padding: 0, marginTop: 24, overflow: "hidden" }}
+          >
             {gameOver.finalScores.map((s, i) => (
               <div
                 key={s.userId}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "10px 12px",
-                  borderBottom: i < gameOver.finalScores.length - 1 ? "1px solid var(--border)" : "none",
-                  background: s.userId === userId ? "rgba(139, 92, 246, 0.1)" : "transparent",
-                  borderRadius: 8,
-                }}
+                className={`lb-row ${s.userId === userId ? "is-you" : ""}`}
               >
-                <span style={{ fontWeight: s.userId === userId ? 700 : 400 }}>
-                  {i + 1}. {s.username}{s.userId === userId ? " (You)" : ""}
-                  {s.userId === hostId && <span title="Host"> 👑</span>}
-                </span>
-                <span style={{ fontWeight: 700 }}>{s.points}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span className={`lb-rank ${i < 3 ? "top3" : ""}`}>{i + 1}</span>
+                  <span style={{ fontWeight: s.userId === userId ? 700 : 400, fontSize: "0.9rem" }}>
+                    {s.username}
+                    {s.userId === userId && (
+                      <span style={{ color: "var(--accent-blue)", marginLeft: 6, fontSize: "0.7rem" }}>YOU</span>
+                    )}
+                    {s.userId === hostId && (
+                      <span style={{ color: "var(--accent-amber)", marginLeft: 6, fontSize: "0.7rem" }}>HOST</span>
+                    )}
+                  </span>
+                </div>
+                <span className="lb-pts">{s.points}</span>
               </div>
             ))}
           </div>
 
           <button
             className="btn btn-primary btn-lg"
-            style={{ marginTop: 32 }}
+            style={{ marginTop: 24 }}
             onClick={() => router.push("/")}
           >
-            Back to Home
+            PLAY AGAIN
           </button>
         </div>
       </div>
@@ -467,9 +587,17 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   // Fallback
   return (
     <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-      <div className="glass-card" style={{ padding: 32, textAlign: "center" }}>
-        <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔌</div>
-        <p style={{ color: "var(--muted-light)" }}>Connecting to game...</p>
+      <div className="panel" style={{ padding: 28, textAlign: "center" }}>
+        <p
+          style={{
+            color: "var(--muted-light)",
+            fontFamily: "ui-monospace, monospace",
+            fontSize: "0.8rem",
+            letterSpacing: "0.15em",
+          }}
+        >
+          CONNECTING TO GAME...
+        </p>
       </div>
     </div>
   );

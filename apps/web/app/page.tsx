@@ -53,45 +53,62 @@ export default function Home() {
   // ─── Auth Screen ───
   if (!user) {
     return (
-      <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-        <div className="container" style={{ maxWidth: 420 }}>
+      <div
+        className="page-wrapper"
+        style={{ justifyContent: "center", alignItems: "center" }}
+      >
+        <div style={{ width: "100%", maxWidth: 400, padding: "0 24px" }}>
+          {/* Wordmark */}
           <div style={{ textAlign: "center", marginBottom: 40 }}>
-            <h1 className="hero-title" style={{ fontSize: "2.5rem", marginBottom: 8 }}>
-              🦅 Trivia Hawk
-            </h1>
-            <p className="hero-subtitle" style={{ margin: "0 auto" }}>
-              Real-time multiplayer trivia
-            </p>
+            <div className="hero-sub" style={{ marginBottom: 8 }}>
+              Real-Time Multiplayer Trivia
+            </div>
+            <h1 className="hero-title">TRIVIA HAWK</h1>
           </div>
 
-          <div className="glass-card animate-slide-up" style={{ padding: 32 }}>
-            <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          {/* Card */}
+          <div className="panel-accent animate-slide-up" style={{ padding: 28 }}>
+            {/* Tab toggle */}
+            <div
+              style={{
+                display: "flex",
+                gap: 2,
+                marginBottom: 24,
+                background: "var(--background)",
+                padding: 3,
+                borderRadius: "var(--radius)",
+                border: "1px solid var(--border)",
+              }}
+            >
               <button
+                type="button"
                 className={`btn ${isLogin ? "btn-primary" : "btn-secondary"}`}
-                style={{ flex: 1 }}
+                style={{ flex: 1, border: "none" }}
                 onClick={() => { setIsLogin(true); setError(""); }}
               >
-                Login
+                LOGIN
               </button>
               <button
+                type="button"
                 className={`btn ${!isLogin ? "btn-primary" : "btn-secondary"}`}
-                style={{ flex: 1 }}
+                style={{ flex: 1, border: "none" }}
                 onClick={() => { setIsLogin(false); setError(""); }}
               >
-                Register
+                REGISTER
               </button>
             </div>
 
             <form onSubmit={handleAuth}>
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 14 }}>
                 <label className="label">Username</label>
                 <input
                   className="input"
                   type="text"
-                  placeholder="Enter username"
+                  placeholder="enter username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
+                  autoComplete="username"
                 />
               </div>
               <div style={{ marginBottom: 20 }}>
@@ -99,19 +116,34 @@ export default function Home() {
                 <input
                   className="input"
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete={isLogin ? "current-password" : "new-password"}
                 />
               </div>
+
               {error && (
-                <p style={{ color: "var(--accent-red)", fontSize: "0.85rem", marginBottom: 16 }}>
-                  {error}
+                <p
+                  style={{
+                    color: "var(--accent-red)",
+                    fontSize: "0.8rem",
+                    marginBottom: 14,
+                    fontWeight: 600,
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  {error.toUpperCase()}
                 </p>
               )}
-              <button className="btn btn-primary btn-lg" style={{ width: "100%" }} type="submit">
-                {isLogin ? "Login" : "Create Account"}
+
+              <button
+                className="btn btn-primary btn-lg"
+                style={{ width: "100%" }}
+                type="submit"
+              >
+                {isLogin ? "LOGIN" : "CREATE ACCOUNT"}
               </button>
             </form>
           </div>
@@ -123,64 +155,141 @@ export default function Home() {
   // ─── Dashboard ───
   return (
     <div className="page-wrapper">
-      <div className="container" style={{ paddingTop: 60, paddingBottom: 60 }}>
+      <div className="container" style={{ paddingTop: 48, paddingBottom: 60 }}>
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 60 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: 56,
+          }}
+        >
           <div>
-            <h1 className="hero-title animate-fade-in">🦅 Trivia Hawk</h1>
-            <p className="hero-subtitle animate-fade-in delay-100">
-              Real-time multiplayer trivia game
-            </p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div className="player-chip">
-              <div className="avatar">{user.username[0]?.toUpperCase()}</div>
-              {user.username}
+            <div className="hero-sub" style={{ marginBottom: 6 }}>
+              Real-Time Multiplayer Trivia
             </div>
-            <button className="btn btn-secondary" onClick={handleLogout} style={{ padding: "8px 16px", fontSize: "0.85rem" }}>
-              Logout
+            <h1 className="hero-title animate-fade-in">TRIVIA HAWK</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 6 }}>
+            <div className="player-chip is-you">
+              <div className="avatar">{user.username[0]?.toUpperCase()}</div>
+              <span>{user.username}</span>
+              <span className="status-dot connected" />
+            </div>
+            <button
+              className="btn btn-secondary"
+              onClick={handleLogout}
+              style={{ fontSize: "0.7rem", padding: "6px 14px" }}
+            >
+              LOGOUT
             </button>
           </div>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, maxWidth: 800, margin: "0 auto" }}>
+        {/* Action cards */}
+        <div
+          className="grid-2col"
+          style={{
+            maxWidth: 760,
+            margin: "0 auto",
+          }}
+        >
           {/* Create Quiz */}
-          <div className="glass-card animate-slide-up" style={{ padding: 40, textAlign: "center" }}>
-            <div style={{ fontSize: "3rem", marginBottom: 16 }}>🎯</div>
-            <h2 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: 8 }}>
-              Create a Quiz
+          <div
+            className="panel animate-slide-up"
+            style={{ padding: 36 }}
+          >
+            <div
+              style={{
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                color: "var(--accent-red)",
+                marginBottom: 12,
+              }}
+            >
+              HOST
+            </div>
+            <h2
+              style={{
+                fontSize: "1.6rem",
+                fontWeight: 900,
+                marginBottom: 8,
+                lineHeight: 1,
+              }}
+            >
+              CREATE
+              <br />
+              A QUIZ
             </h2>
-            <p style={{ color: "var(--muted-light)", marginBottom: 24, fontSize: "0.9rem" }}>
-              Build your own quiz and host it for friends
+            <p
+              style={{
+                color: "var(--muted-light)",
+                marginBottom: 28,
+                fontSize: "0.85rem",
+                lineHeight: 1.5,
+              }}
+            >
+              Build questions, set a room, invite players to compete.
             </p>
             <button
               className="btn btn-primary btn-lg"
               style={{ width: "100%" }}
               onClick={() => router.push("/create")}
             >
-              Create Quiz
+              CREATE QUIZ
             </button>
           </div>
 
-          {/* Join Room */}
-          <div className="glass-card animate-slide-up delay-100" style={{ padding: 40, textAlign: "center" }}>
-            <div style={{ fontSize: "3rem", marginBottom: 16 }}>🎮</div>
-            <h2 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: 8 }}>
-              Join a Game
+          {/* Join Game */}
+          <div
+            className="panel animate-slide-up delay-100"
+            style={{ padding: 36 }}
+          >
+            <div
+              style={{
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                color: "var(--accent-blue)",
+                marginBottom: 12,
+              }}
+            >
+              PLAYER
+            </div>
+            <h2
+              style={{
+                fontSize: "1.6rem",
+                fontWeight: 900,
+                marginBottom: 8,
+                lineHeight: 1,
+              }}
+            >
+              JOIN
+              <br />A GAME
             </h2>
-            <p style={{ color: "var(--muted-light)", marginBottom: 24, fontSize: "0.9rem" }}>
-              Enter a room code to join a live quiz
+            <p
+              style={{
+                color: "var(--muted-light)",
+                marginBottom: 20,
+                fontSize: "0.85rem",
+                lineHeight: 1.5,
+              }}
+            >
+              Enter the room code to jump into a live quiz.
             </p>
             <form onSubmit={handleJoinRoom}>
               <input
-                className="input input-lg"
+                className="input input-mono"
                 type="text"
-                placeholder="ROOM CODE"
+                placeholder="XXXXXX"
                 maxLength={6}
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                style={{ marginBottom: 12 }}
+                style={{ marginBottom: 10 }}
               />
               <button
                 className="btn btn-primary btn-lg"
@@ -188,7 +297,7 @@ export default function Home() {
                 type="submit"
                 disabled={roomCode.length < 6}
               >
-                Join Game
+                JOIN GAME
               </button>
             </form>
           </div>
