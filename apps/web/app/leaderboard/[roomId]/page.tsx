@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "../../lib/api";
+import { Podium } from "../../components/Podium";
 
 interface ScoreEntry {
   id: string;
@@ -35,86 +36,110 @@ export default function LeaderboardPage({
 
   if (loading) {
     return (
-      <div className="page-wrapper" style={{ justifyContent: "center", alignItems: "center" }}>
-        <p style={{ color: "var(--muted-light)" }}>Loading scores...</p>
+      <div className="page-wrapper">
+        <div className="container" style={{ paddingTop: 40, paddingBottom: 60, maxWidth: 560, textAlign: "center" }}>
+          <div className="back-btn-wrap" style={{ textAlign: "left" }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => router.push("/")}
+              style={{ fontSize: "0.7rem", padding: "6px 14px" }}
+            >
+              HOME
+            </button>
+          </div>
+          <div className="hero-sub animate-fade-in" style={{ marginBottom: 6 }}>Final Scores</div>
+          <h1 className="hero-title animate-scale-in" style={{ fontSize: "2.2rem", marginBottom: 32 }}>
+            LEADERBOARD
+          </h1>
+          <div className="panel" style={{ padding: 0, overflow: "hidden" }}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="lb-row" style={{ gap: 12 }}>
+                <div className="skeleton" style={{ width: 24, height: 16 }} />
+                <div className="skeleton" style={{ width: 120, height: 16 }} />
+                <div className="skeleton" style={{ width: 48, height: 16, marginLeft: "auto" }} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
-  const top3 = scores.slice(0, 3);
+  const podiumScores = scores.map((s) => ({
+    username: s.user.username,
+    points: s.points,
+  }));
 
   return (
     <div className="page-wrapper">
-      <div className="container" style={{ paddingTop: 40, paddingBottom: 60, maxWidth: 600, textAlign: "center" }}>
-        <button
-          className="btn btn-secondary"
-          onClick={() => router.push("/")}
-          style={{ position: "absolute", top: 20, left: 20 }}
-        >
-          ← Home
-        </button>
+      <div
+        className="container"
+        style={{ paddingTop: 40, paddingBottom: 60, maxWidth: 560, textAlign: "center" }}
+      >
+        <div className="back-btn-wrap" style={{ textAlign: "left" }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => router.push("/")}
+            style={{ fontSize: "0.7rem", padding: "6px 14px" }}
+          >
+            HOME
+          </button>
+        </div>
 
-        <h1 className="hero-title animate-scale-in" style={{ fontSize: "2rem", marginBottom: 32 }}>
-          🏆 Final Scores
+        <div className="hero-sub animate-fade-in" style={{ marginBottom: 6 }}>
+          Final Scores
+        </div>
+        <h1
+          className="hero-title animate-scale-in"
+          style={{ fontSize: "2.2rem", marginBottom: 32 }}
+        >
+          LEADERBOARD
         </h1>
 
         {/* Podium */}
-        {top3.length > 0 && (
-          <div className="podium animate-slide-up">
-            {top3[1] && (
-              <div className="podium-place podium-2nd">
-                <div className="podium-name">{top3[1].user.username}</div>
-                <div className="podium-bar">🥈</div>
-                <div className="podium-points">{top3[1].points} pts</div>
-              </div>
-            )}
-            {top3[0] && (
-              <div className="podium-place podium-1st">
-                <div className="podium-name">{top3[0].user.username}</div>
-                <div className="podium-bar">🥇</div>
-                <div className="podium-points">{top3[0].points} pts</div>
-              </div>
-            )}
-            {top3[2] && (
-              <div className="podium-place podium-3rd">
-                <div className="podium-name">{top3[2].user.username}</div>
-                <div className="podium-bar">🥉</div>
-                <div className="podium-points">{top3[2].points} pts</div>
-              </div>
-            )}
-          </div>
+        {scores.length > 0 && (
+          <Podium scores={podiumScores} />
         )}
 
         {/* Full List */}
-        <div className="glass-card animate-slide-up delay-200" style={{ padding: 24, marginTop: 32 }}>
+        <div
+          className="panel animate-slide-up delay-200"
+          style={{ padding: 0, marginTop: 28, overflow: "hidden" }}
+        >
           {scores.length === 0 ? (
-            <p style={{ color: "var(--muted)" }}>No scores recorded yet.</p>
+            <p
+              style={{
+                color: "var(--muted)",
+                padding: 20,
+                fontSize: "0.85rem",
+                letterSpacing: "0.05em",
+              }}
+            >
+              NO SCORES RECORDED YET.
+            </p>
           ) : (
             scores.map((s, i) => (
-              <div
-                key={s.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "12px 16px",
-                  borderBottom: i < scores.length - 1 ? "1px solid var(--border)" : "none",
-                }}
-              >
+              <div key={s.id} className="lb-row">
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontWeight: 700, color: i < 3 ? "var(--accent-orange)" : "var(--muted)", width: 24 }}>
-                    {i + 1}
-                  </span>
+                  <span className={`lb-rank ${i < 3 ? "top3" : ""}`}>{i + 1}</span>
                   <div>
-                    <span style={{ fontWeight: 500 }}>{s.user.username}</span>
-                    <span style={{ color: "var(--muted)", fontSize: "0.8rem", marginLeft: 8 }}>
-                      {(s.answers || []).filter((a) => a.correct).length}/{(s.answers || []).length} correct
+                    <span style={{ fontWeight: 500, fontSize: "0.9rem" }}>
+                      {s.user.username}
+                    </span>
+                    <span
+                      style={{
+                        color: "var(--muted)",
+                        fontSize: "0.75rem",
+                        marginLeft: 8,
+                        fontFamily: "ui-monospace, monospace",
+                      }}
+                    >
+                      {(s.answers || []).filter((a) => a.correct).length}/
+                      {(s.answers || []).length}
                     </span>
                   </div>
                 </div>
-                <span style={{ fontWeight: 700, color: "var(--accent-cyan)", fontSize: "1.1rem" }}>
-                  {s.points}
-                </span>
+                <span className="lb-pts">{s.points}</span>
               </div>
             ))
           )}

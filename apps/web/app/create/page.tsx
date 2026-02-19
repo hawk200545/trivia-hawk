@@ -65,7 +65,6 @@ export default function CreateQuizPage() {
       return;
     }
 
-    // Validate
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i]!;
       if (!q.text.trim()) {
@@ -99,7 +98,6 @@ export default function CreateQuizPage() {
         }),
       });
 
-      // Create room immediately
       const room = await api<{ code: string; id: string }>("/api/room", {
         method: "POST",
         body: JSON.stringify({ quizId: quiz.id, hostId: user.id }),
@@ -122,18 +120,35 @@ export default function CreateQuizPage() {
 
   return (
     <div className="page-wrapper">
-      <div className="container" style={{ paddingTop: 40, paddingBottom: 60, maxWidth: 800 }}>
+      <div className="container" style={{ paddingTop: 32, paddingBottom: 60, maxWidth: 760 }}>
+
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 40 }}>
-          <button className="btn btn-secondary" onClick={() => router.push("/")}>
-            ← Back
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            marginBottom: 32,
+          }}
+        >
+          <button
+            className="btn btn-secondary"
+            onClick={() => router.push("/")}
+            style={{ padding: "6px 14px", fontSize: "0.7rem" }}
+          >
+            BACK
           </button>
-          <h1 style={{ fontSize: "1.8rem", fontWeight: 700 }}>Create a Quiz</h1>
+          <div>
+            <div className="hero-sub">Quiz Builder</div>
+            <h1 style={{ fontSize: "1.6rem", fontWeight: 900, lineHeight: 1 }}>
+              CREATE QUIZ
+            </h1>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
           {/* Title */}
-          <div className="glass-card animate-fade-in" style={{ padding: 24, marginBottom: 20 }}>
+          <div className="panel animate-fade-in" style={{ padding: 20, marginBottom: 16 }}>
             <label className="label">Quiz Title</label>
             <input
               className="input"
@@ -142,7 +157,7 @@ export default function CreateQuizPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              style={{ fontSize: "1.1rem" }}
+              style={{ fontSize: "1rem", fontWeight: 700 }}
             />
           </div>
 
@@ -150,27 +165,43 @@ export default function CreateQuizPage() {
           {questions.map((q, qIdx) => (
             <div
               key={qIdx}
-              className="glass-card animate-slide-up"
-              style={{ padding: 24, marginBottom: 16 }}
+              className="panel animate-slide-up"
+              style={{ padding: 20, marginBottom: 12 }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "var(--accent-cyan)" }}>
+              {/* Q header */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.15em",
+                    textTransform: "uppercase",
+                    color: "var(--accent-blue)",
+                  }}
+                >
                   Question {qIdx + 1}
-                </h3>
+                </div>
                 {questions.length > 1 && (
                   <button
                     type="button"
                     className="btn btn-danger"
-                    style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                    style={{ padding: "4px 12px", fontSize: "0.7rem" }}
                     onClick={() => removeQuestion(qIdx)}
                   >
-                    Remove
+                    REMOVE
                   </button>
                 )}
               </div>
 
               {/* Question text */}
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 14 }}>
                 <label className="label">Question</label>
                 <input
                   className="input"
@@ -183,7 +214,7 @@ export default function CreateQuizPage() {
               </div>
 
               {/* Image URL */}
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 14 }}>
                 <label className="label">Image URL (optional)</label>
                 <input
                   className="input"
@@ -195,53 +226,71 @@ export default function CreateQuizPage() {
               </div>
 
               {/* Options */}
-              <div style={{ marginBottom: 16 }}>
-                <label className="label">Answer Options</label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  {q.options.map((opt, oIdx) => (
-                    <div key={oIdx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <button
-                        type="button"
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 6,
-                          border: "2px solid",
-                          borderColor: q.correctIndex === oIdx ? "var(--accent-green)" : "var(--border)",
-                          background: q.correctIndex === oIdx ? "rgba(16, 185, 129, 0.2)" : "transparent",
-                          color: q.correctIndex === oIdx ? "var(--accent-green)" : "var(--muted)",
-                          cursor: "pointer",
-                          fontWeight: 700,
-                          fontSize: "0.75rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                        onClick={() => updateQuestion(qIdx, { correctIndex: oIdx })}
-                        title={`Mark as correct answer`}
-                      >
-                        {String.fromCharCode(65 + oIdx)}
-                      </button>
-                      <input
-                        className="input"
-                        type="text"
-                        placeholder={`Option ${String.fromCharCode(65 + oIdx)}`}
-                        value={opt}
-                        onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
-                        style={{ padding: "8px 12px" }}
-                      />
-                    </div>
-                  ))}
+              <div style={{ marginBottom: 14 }}>
+                <label className="label">
+                  Answer Options — correct:{" "}
+                  <span style={{ color: "var(--accent-green)", fontFamily: "monospace" }}>
+                    {String.fromCharCode(65 + q.correctIndex)}
+                  </span>
+                </label>
+                <div className="grid-2col" style={{ gap: 8 }}>
+                  {q.options.map((opt, oIdx) => {
+                    const isCorrect = q.correctIndex === oIdx;
+                    return (
+                      <div key={oIdx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button
+                          type="button"
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: "var(--radius)",
+                            border: "1px solid",
+                            borderColor: isCorrect ? "var(--accent-green)" : "var(--border-accent)",
+                            background: isCorrect
+                              ? "rgba(0, 255, 136, 0.15)"
+                              : "var(--card)",
+                            color: isCorrect ? "var(--accent-green)" : "var(--muted-light)",
+                            cursor: "pointer",
+                            fontWeight: 900,
+                            fontSize: "0.75rem",
+                            fontFamily: "ui-monospace, monospace",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                          onClick={() => updateQuestion(qIdx, { correctIndex: oIdx })}
+                          title="Mark as correct answer"
+                        >
+                          {String.fromCharCode(65 + oIdx)}
+                        </button>
+                        <input
+                          className="input"
+                          type="text"
+                          placeholder={`Option ${String.fromCharCode(65 + oIdx)}`}
+                          value={opt}
+                          onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
+                          style={{ padding: "8px 12px" }}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-                <p style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: 6 }}>
-                  Click a letter to mark the correct answer (currently: {String.fromCharCode(65 + q.correctIndex)})
-                </p>
               </div>
 
               {/* Time limit */}
               <div>
-                <label className="label">Time Limit: {q.timeLimitSecs}s</label>
+                <label className="label">
+                  Time Limit:{" "}
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      color: "var(--accent-amber)",
+                    }}
+                  >
+                    {q.timeLimitSecs}s
+                  </span>
+                </label>
                 <input
                   type="range"
                   min="10"
@@ -251,7 +300,7 @@ export default function CreateQuizPage() {
                   onChange={(e) =>
                     updateQuestion(qIdx, { timeLimitSecs: Number(e.target.value) })
                   }
-                  style={{ width: "100%", accentColor: "var(--accent-purple)" }}
+                  style={{ width: "100%", accentColor: "var(--accent-amber)" }}
                 />
               </div>
             </div>
@@ -261,16 +310,25 @@ export default function CreateQuizPage() {
           <button
             type="button"
             className="btn btn-secondary"
-            style={{ width: "100%", marginBottom: 24 }}
+            style={{ width: "100%", marginBottom: 20 }}
             onClick={addQuestion}
           >
-            + Add Question
+            + ADD QUESTION
           </button>
 
           {/* Error */}
           {error && (
-            <p style={{ color: "var(--accent-red)", marginBottom: 16, textAlign: "center" }}>
-              {error}
+            <p
+              style={{
+                color: "var(--accent-red)",
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                marginBottom: 14,
+                textAlign: "center",
+              }}
+            >
+              {error.toUpperCase()}
             </p>
           )}
 
@@ -281,7 +339,7 @@ export default function CreateQuizPage() {
             style={{ width: "100%" }}
             disabled={loading}
           >
-            {loading ? "Creating..." : "Create Quiz & Start Room"}
+            {loading ? "CREATING..." : "CREATE QUIZ & OPEN ROOM"}
           </button>
         </form>
       </div>
