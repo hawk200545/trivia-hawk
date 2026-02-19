@@ -38,7 +38,7 @@ jobs:
             git pull origin main
             bun install
             bunx prisma generate --schema=packages/prisma/prisma/schema.prisma
-            echo "DATABASE_URL=\\$DATABASE_URL" > packages/prisma/.env
+            echo 'DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}' > packages/prisma/.env
             bunx prisma migrate deploy --schema=packages/prisma/prisma/schema.prisma
             bun run build
             pm2 restart fe-server http-server ws-server
