@@ -12,7 +12,11 @@ import type {
 const app = new Hono();
 
 // ─── Middleware ───
-app.use("/*", cors());
+app.use("/*", cors({
+    origin: process.env.CORS_ORIGINS
+        ? process.env.CORS_ORIGINS.split(",")
+        : ["http://localhost:3000"],
+}));
 
 // ─── Health ───
 app.get("/", (c) => c.json({ status: "ok", service: "trivia-hawk-api" }));
