@@ -19,26 +19,43 @@ jobs:
           echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/deploy_key
 
+      - name: Write env files
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.DEV_SERVER_IP }}"
+
+          $SSH_CMD "mkdir -p ~/trivia-hawk/packages/prisma ~/trivia-hawk/apps/http_server ~/trivia-hawk/apps/ws ~/trivia-hawk/apps/web"
+
+          $SSH_CMD "cat > ~/trivia-hawk/packages/prisma/.env" << 'ENVEOF'
+          DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
+          ENVEOF
+
+          $SSH_CMD "cat > ~/trivia-hawk/apps/http_server/.env" << 'ENVEOF'
+          DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
+          PORT=${{ secrets.DEV_PORT }}
+          CORS_ORIGINS=${{ secrets.DEV_CORS_ORIGINS }}
+          ENVEOF
+
+          $SSH_CMD "cat > ~/trivia-hawk/apps/ws/.env" << 'ENVEOF'
+          DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
+          WS_PORT=${{ secrets.DEV_WS_PORT }}
+          ENVEOF
+
+          $SSH_CMD "cat > ~/trivia-hawk/apps/web/.env" << 'ENVEOF'
+          NEXT_PUBLIC_HTTP_URL=${{ secrets.DEV_NEXT_PUBLIC_HTTP_URL }}
+          NEXT_PUBLIC_WS_URL=${{ secrets.DEV_NEXT_PUBLIC_WS_URL }}
+          ENVEOF
+
       - name: Deploy
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ubuntu@"${{ secrets.DEV_SERVER_IP }}" << EOF
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ubuntu@"${{ secrets.DEV_SERVER_IP }}" << 'EOF'
             set -e
-            export BUN_INSTALL="\$HOME/.bun"
-            export PATH="\$BUN_INSTALL/bin:/home/ubuntu/.nvm/versions/node/v24.13.1/bin:\$PATH"
-
-            # App environment variables
-            export DATABASE_URL="${{ secrets.DEV_DATABASE_URL }}"
-            export PORT="${{ secrets.DEV_PORT }}"
-            export WS_PORT="${{ secrets.DEV_WS_PORT }}"
-            export CORS_ORIGINS="${{ secrets.DEV_CORS_ORIGINS }}"
-            export NEXT_PUBLIC_HTTP_URL="${{ secrets.DEV_NEXT_PUBLIC_HTTP_URL }}"
-            export NEXT_PUBLIC_WS_URL="${{ secrets.DEV_NEXT_PUBLIC_WS_URL }}"
+            export BUN_INSTALL="$HOME/.bun"
+            export PATH="$BUN_INSTALL/bin:/home/ubuntu/.nvm/versions/node/v24.13.1/bin:$PATH"
 
             cd trivia-hawk
             git pull origin main
             bun install
             bunx prisma generate --schema=packages/prisma/prisma/schema.prisma
-            echo 'DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}' > packages/prisma/.env
             bunx prisma migrate deploy --schema=packages/prisma/prisma/schema.prisma
             bun run build
             pm2 restart fe-server http-server ws-server
