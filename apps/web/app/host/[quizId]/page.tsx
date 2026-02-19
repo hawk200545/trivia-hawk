@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, use } from "react";
+import { useEffect, useState, use } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type {
   RoomStatePayload,
@@ -14,7 +15,8 @@ import type {
 } from "@repo/shared";
 
 export default function HostPage({ params }: { params: Promise<{ quizId: string }> }) {
-  const { quizId } = use(params);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { quizId: _quizId } = use(params);
   const searchParams = useSearchParams();
   const router = useRouter();
   const roomCode = searchParams.get("roomCode") || "";
@@ -26,7 +28,7 @@ export default function HostPage({ params }: { params: Promise<{ quizId: string 
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [hostId, setHostId] = useState("");
-  const [status, setStatus] = useState<"LOBBY" | "ACTIVE" | "FINISHED">("LOBBY");
+  const [, setStatus] = useState<"LOBBY" | "ACTIVE" | "FINISHED">("LOBBY");
   const [currentQuestion, setCurrentQuestion] = useState<QuestionStartPayload | null>(null);
   const [questionResult, setQuestionResult] = useState<QuestionEndPayload | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -183,9 +185,11 @@ export default function HostPage({ params }: { params: Promise<{ quizId: string 
 
           <div className="glass-card animate-scale-in" style={{ padding: 32, marginBottom: 24 }}>
             {q.question.imageUrl && (
-              <img
+              <Image
                 src={q.question.imageUrl}
                 alt="Question"
+                width={600}
+                height={200}
                 style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, marginBottom: 16, objectFit: "contain" }}
               />
             )}

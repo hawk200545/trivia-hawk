@@ -3,6 +3,7 @@
 export type WsEventType =
     // Client → Server
     | "JOIN_ROOM"
+    | "LEAVE_ROOM"
     | "START_GAME"
     | "SUBMIT_ANSWER"
     // Server → Client
@@ -37,6 +38,11 @@ export interface SubmitAnswerPayload {
     questionId: string;
     answerIndex: number;
     timeMs: number;
+}
+
+export interface LeaveRoomPayload {
+    roomCode: string;
+    userId: string;
 }
 
 // ─── Server → Client Payloads ───

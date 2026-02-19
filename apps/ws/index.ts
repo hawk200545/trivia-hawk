@@ -4,6 +4,7 @@ import {
     calculatePoints,
     type WsMessage,
     type JoinRoomPayload,
+    type LeaveRoomPayload,
     type StartGamePayload,
     type SubmitAnswerPayload,
     type Player,
@@ -201,6 +202,32 @@ async function handleJoinRoom(
         type: "ROOM_STATE",
         payload: buildRoomState(game),
     }, userId);
+}
+
+function handleLeaveRoom(
+    ws: ServerWebSocket<WsData>,
+    payload: LeaveRoomPayload
+): void {
+    const { roomCode, userId } = payload;
+    const roomId = codeToRoomId.get(roomCode);
+    const game = roomId ? rooms.get(roomId) : undefined;
+
+    if (!game) return;
+
+    // Remove player from game
+    game.players.delete(userId);
+    game.scores.delete(userId);
+
+    // Clear ws data so the close handler doesn't try to process this player again
+    ws.data = { userId: "", roomId: "" };
+
+    // Broadcast updated room state
+    broadcast(game, {
+        type: "ROOM_STATE",
+        payload: buildRoomState(game),
+    });
+
+    console.log(`Player ${userId} left room ${roomCode}`);
 }
 
 async function handleStartGame(
@@ -494,6 +521,9 @@ Bun.serve<WsData>({
                     case "JOIN_ROOM":
                         await handleJoinRoom(ws, msg.payload as JoinRoomPayload);
                         break;
+                    case "LEAVE_ROOM":
+                        handleLeaveRoom(ws, msg.payload as LeaveRoomPayload);
+                        break;
                     case "START_GAME":
                         await handleStartGame(ws, msg.payload as StartGamePayload);
                         break;
@@ -521,6 +551,13 @@ Bun.serve<WsData>({
 
             const player = game.players.get(data.userId);
             if (player) {
+                // GUARD: Only mark disconnected if this ws is still the player's active socket.
+                // Prevents a stale socket from overriding a freshly-reconnected player.
+                if (player.ws !== ws) {
+                    console.log(`Stale socket closed for ${data.userId}, ignoring`);
+                    return;
+                }
+
                 player.connected = false;
 
                 // Notify others that player left

@@ -13,16 +13,23 @@ export function useWebSocket() {
     const [connected, setConnected] = useState(false);
     const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const shouldReconnect = useRef(true);
+    // Connection ID: incremented on each connect() to disambiguate stale sockets
+    const connIdRef = useRef(0);
 
     const connect = useCallback(() => {
         if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
 
+        // Reset reconnect flag and bump connection ID
+        shouldReconnect.current = true;
+        const thisConnId = ++connIdRef.current;
+
         const ws = new WebSocket(WS_URL);
 
         ws.onopen = () => {
+            // Only update state if this is still the active connection
+            if (thisConnId !== connIdRef.current) return;
             console.log("WebSocket connected");
             setConnected(true);
-            // Clear any pending reconnect
             if (reconnectTimer.current) {
                 clearTimeout(reconnectTimer.current);
                 reconnectTimer.current = null;
@@ -30,11 +37,17 @@ export function useWebSocket() {
         };
 
         ws.onclose = () => {
+            // CRITICAL: Only clear state if this socket is still the active one.
+            // In React StrictMode, a stale WS-A's onclose can fire after WS-B is active.
+            if (thisConnId !== connIdRef.current) {
+                console.log("Stale WebSocket closed (ignored)");
+                return;
+            }
+
             console.log("WebSocket disconnected");
             setConnected(false);
             wsRef.current = null;
 
-            // Auto-reconnect with backoff
             if (shouldReconnect.current && !reconnectTimer.current) {
                 reconnectTimer.current = setTimeout(() => {
                     console.log("Reconnecting...");
@@ -55,7 +68,6 @@ export function useWebSocket() {
                 const handlers = handlersRef.current.get(msg.type) ?? [];
                 handlers.forEach((h) => h(msg));
 
-                // Also fire wildcard handlers
                 const wildcardHandlers = handlersRef.current.get("*" as WsEventType) ?? [];
                 wildcardHandlers.forEach((h) => h(msg));
             } catch (err) {
@@ -93,7 +105,6 @@ export function useWebSocket() {
         handlers.push(handler);
         handlersRef.current.set(key, handlers);
 
-        // Return unsubscribe function
         return () => {
             const current = handlersRef.current.get(key) ?? [];
             const filtered = current.filter((h) => h !== handler);

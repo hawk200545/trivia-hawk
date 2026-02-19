@@ -41,6 +41,7 @@ html {
 
 body {
   font-family:
+    var(--font-inter),
     "Inter",
     -apple-system,
     BlinkMacSystemFont,

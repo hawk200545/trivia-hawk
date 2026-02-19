@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type {
   RoomStatePayload,
@@ -20,7 +21,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const userId = searchParams.get("userId") || "";
   const username = searchParams.get("username") || "";
 
-  const { connect, sendMessage, on, connected } = useWebSocket();
+  const { connect, disconnect, sendMessage, on, connected } = useWebSocket();
 
   const [roomId, setRoomId] = useState("");
   const [hostId, setHostId] = useState("");
@@ -132,6 +133,15 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     });
   };
 
+  const handleLeaveRoom = () => {
+    sendMessage({
+      type: "LEAVE_ROOM",
+      payload: { roomCode, userId },
+    });
+    disconnect();
+    router.push("/");
+  };
+
   // ─── Error ───
   if (error) {
     return (
@@ -183,6 +193,14 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
               ))}
             </div>
           </div>
+
+          <button
+            className="btn btn-secondary"
+            style={{ marginTop: 8 }}
+            onClick={handleLeaveRoom}
+          >
+            🚪 Leave Room
+          </button>
         </div>
       </div>
     );
@@ -217,9 +235,11 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
           <div className="glass-card animate-scale-in" style={{ padding: 24, marginBottom: 20 }}>
             {q.question.imageUrl && (
-              <img
+              <Image
                 src={q.question.imageUrl}
                 alt="Question"
+                width={500}
+                height={180}
                 style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8, marginBottom: 12, objectFit: "contain" }}
               />
             )}
